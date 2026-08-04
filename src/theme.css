@@ -1,0 +1,131 @@
+@import 'tailwindcss';
+
+/*
+ * Design-Tokens. Alle Farben sind semantisch benannt, damit der Theme-Wechsel
+ * unten nur diese Variablen überschreiben muss und keine Komponente etwas davon merkt.
+ */
+@theme {
+  --color-bg: #0a1110;
+  --color-surface: #131b19;
+  --color-surface-2: #1c2523;
+  --color-line: #27332f;
+  --color-ink: #eef3f1;
+  --color-muted: #93a9a1;
+
+  --color-felt: #0e5c3f;
+  --color-felt-deep: #06301f;
+  --color-felt-line: #1f7a55;
+
+  --color-gold: #f0c14b;
+  --color-win: #34d399;
+  --color-tie: #fbbf24;
+  --color-loss: #fb7185;
+  --color-danger: #ef4444;
+
+  --color-card: #fbfaf7;
+  --color-card-ink: #16181c;
+  --color-card-red: #d92b3a;
+
+  --radius-card: 0.75rem;
+
+  --shadow-lift: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -8px rgb(0 0 0 / 0.5);
+  --shadow-card: 0 1px 1px rgb(0 0 0 / 0.35), 0 6px 14px -6px rgb(0 0 0 / 0.55);
+
+  --animate-deal: deal 0.42s cubic-bezier(0.2, 0.9, 0.25, 1) backwards;
+  --animate-pop: pop 0.25s cubic-bezier(0.2, 0.9, 0.25, 1);
+  --animate-rise: rise 0.35s ease-out backwards;
+}
+
+/* Helles Theme: dieselben Rollen, andere Werte. */
+:root[data-theme='light'] {
+  --color-bg: #eef2ef;
+  --color-surface: #ffffff;
+  --color-surface-2: #f2f5f2;
+  --color-line: #d5ded8;
+  --color-ink: #12201b;
+  --color-muted: #5c7168;
+
+  --color-felt: #157a52;
+  --color-felt-deep: #0d5c3d;
+  --color-felt-line: #2ba272;
+
+  --color-gold: #b8860b;
+  --color-win: #12996b;
+  --color-tie: #b8860b;
+  --color-loss: #d64560;
+
+  --shadow-lift: 0 1px 2px rgb(0 0 0 / 0.08), 0 8px 24px -10px rgb(0 0 0 / 0.18);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.14), 0 6px 14px -8px rgb(0 0 0 / 0.25);
+}
+
+@keyframes deal {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) rotateY(70deg) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateY(0deg) scale(1);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.9);
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* Verhindert das Doppeltipp-Zoomen auf iOS – die Buttons sind groß genug. */
+    touch-action: manipulation;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    /* Zahlen sollen beim Hochzählen nicht springen. */
+    font-variant-numeric: tabular-nums;
+    overscroll-behavior-y: none;
+  }
+
+  button {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
