@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { defaultSpot, type SpotState } from './core/types';
 import { useLocalState } from './hooks/useLocalState';
+import { useShotClock } from './hooks/useShotClock';
 import { useSound } from './hooks/useSound';
 import { AnalyzerScreen } from './screens/AnalyzerScreen';
 import { LearnScreen } from './screens/LearnScreen';
 import { StatsScreen } from './screens/StatsScreen';
-import { TimerScreen } from './screens/TimerScreen';
 import {
   STORAGE_KEY,
   STORAGE_VERSION,
@@ -16,12 +16,11 @@ import {
   toggleFavorite,
 } from './state/appStorage';
 
-type TabKey = 'analyse' | 'lernen' | 'timer' | 'statistik';
+type TabKey = 'analyse' | 'lernen' | 'statistik';
 
 const TABS: Array<{ key: TabKey; label: string; icon: string }> = [
   { key: 'analyse', label: 'Analyse', icon: '♠' },
   { key: 'lernen', label: 'Lernen', icon: '◎' },
-  { key: 'timer', label: 'Timer', icon: '⏱' },
   { key: 'statistik', label: 'Statistik', icon: '▤' },
 ];
 
@@ -30,6 +29,9 @@ export default function App() {
   const [spot, setSpot] = useState<SpotState>(defaultSpot);
   const [tab, setTab] = useState<TabKey>('analyse');
   const play = useSound(app.sound);
+  // Eine einzige Uhr für die ganze Session – lebt hier oben, damit das Pre-Game-Fenster
+  // (Spieler hinzufügen) und die Anzeige in der Analyse dieselbe Instanz teilen.
+  const clock = useShotClock(app.clock, play);
 
   // Theme auf das <html>-Element schreiben – dort greifen die CSS-Variablen.
   useEffect(() => {
@@ -111,16 +113,10 @@ export default function App() {
             setApp={setApp}
             onFinishedRun={handleFinishedRun}
             play={play}
+            clock={clock}
           />
         )}
         {tab === 'lernen' && <LearnScreen app={app} onAnswer={handleAnswer} play={play} />}
-        {tab === 'timer' && (
-          <TimerScreen
-            config={app.clock}
-            onConfigChange={(clock) => setApp((prev) => ({ ...prev, clock }))}
-            play={play}
-          />
-        )}
         {tab === 'statistik' && (
           <StatsScreen
             app={app}

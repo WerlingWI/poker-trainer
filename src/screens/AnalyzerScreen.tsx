@@ -2,12 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DeckHeatmap, ImpactRow } from '../components/analysis/DeckHeatmap';
 import { DrawList } from '../components/analysis/DrawList';
 import { CardPicker } from '../components/cards/CardPicker';
+import { PreGameSheet } from '../components/pregame/PreGameSheet';
 import { OpponentProfile } from '../components/range/OpponentProfile';
 import { EquityDonut, ResultBars } from '../components/results/EquityDonut';
 import { RecommendationBanner } from '../components/results/Recommendation';
 import { StatTile } from '../components/results/StatTile';
 import { StrategyPanel } from '../components/results/StrategyPanel';
+import { QuickBetBar } from '../components/table/QuickBetBar';
 import { TableFelt, type SlotTarget } from '../components/table/TableFelt';
+import { ShotClockBar } from '../components/timer/ShotClockBar';
 import { Button } from '../components/ui/Button';
 import { Panel, ProgressBar } from '../components/ui/Panel';
 import { Segmented } from '../components/ui/Segmented';
@@ -29,6 +32,7 @@ import {
 } from '../core/types';
 import { useCardHotkeys } from '../hooks/useHotkeys';
 import { useEquity } from '../hooks/useEquity';
+import type { useShotClock } from '../hooks/useShotClock';
 import type { SoundName } from '../hooks/useSound';
 import type { AppState } from '../state/appStorage';
 
@@ -41,6 +45,7 @@ interface AnalyzerScreenProps {
   setApp: (update: AppState | ((prev: AppState) => AppState)) => void;
   onFinishedRun: (spot: SpotState, equity: number) => void;
   play: (name: SoundName) => void;
+  clock: ReturnType<typeof useShotClock>;
 }
 
 export function AnalyzerScreen({
@@ -50,9 +55,11 @@ export function AnalyzerScreen({
   setApp,
   onFinishedRun,
   play,
+  clock,
 }: AnalyzerScreenProps) {
   const [picker, setPicker] = useState<SlotTarget | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [showPreGame, setShowPreGame] = useState(false);
 
   const equity = useEquity(spot, app.iterations);
   const used = usedCards(spot);
@@ -201,6 +208,15 @@ export function AnalyzerScreen({
 
   return (
     <div className="space-y-4">
+      <button
+        onClick={() => setShowPreGame(true)}
+        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-gold/40 bg-gold/10 text-sm font-bold text-gold transition hover:bg-gold/15"
+      >
+        <span aria-hidden="true">⚙</span> Vor dem Spiel – Blinds, Spieler &amp; Uhr einrichten
+      </button>
+
+      <ShotClockBar clock={clock} onOpenPreGame={() => setShowPreGame(true)} />
+
       <TableFelt
         spot={spot}
         nextSlot={picker ?? nextFreeSlot}
@@ -208,6 +224,8 @@ export function AnalyzerScreen({
         onSlotClick={(target) => setPicker(target)}
         onRemove={removeCard}
       />
+
+      {ready && <QuickBetBar spot={spot} setSpot={setSpot} />}
 
       {pendingRank !== null && (
         <p className="text-center text-sm text-gold">
@@ -441,6 +459,16 @@ export function AnalyzerScreen({
       />
 
       <ShortcutHelp open={showHelp} onClose={() => setShowHelp(false)} />
+
+      <PreGameSheet
+        open={showPreGame}
+        onClose={() => setShowPreGame(false)}
+        spot={spot}
+        setSpot={setSpot}
+        clockConfig={app.clock}
+        onClockConfigChange={(clockConfig) => setApp((prev) => ({ ...prev, clock: clockConfig }))}
+        clock={clock}
+      />
     </div>
   );
 }
@@ -503,18 +531,10 @@ function SpotSettings({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Stepper label="Pot" value={spot.pot} min={0} step={spot.bigBlind} onChange={(pot) => update({ pot })} />
-        <Stepper label="Call" value={spot.call} min={0} step={spot.bigBlind} onChange={(call) => update({ call })} />
-      </div>
-
-      <Stepper
-        label="Effektiver Stack"
-        value={spot.stack}
-        min={0}
-        step={spot.bigBlind * 5}
-        onChange={(stack) => update({ stack })}
-      />
+      <p className="text-xs text-muted">
+        Pot, Call und Stack stellst du direkt oben in der Schnelleingabe ein – hier geht es nur um
+        Blinds, Position und die Einsatzhistorie.
+      </p>
 
       <div className="grid grid-cols-2 gap-3">
         <Stepper

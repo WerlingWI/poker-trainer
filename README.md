@@ -21,6 +21,20 @@ Danach `http://localhost:5173` öffnen. `npm test` führt die Testsuite aus,
 **Analyse** – Zwei eigene Karten genügen; das Board ist optional. Die Simulation startet
 automatisch, ohne Klick auf einen Berechnen-Knopf.
 
+- **Pre-Game-Fenster** (Knopf oben auf der Analyse-Seite): Blinds, Spieleranzahl und
+  Startstack als antippbare Presets, an der Stakes-Auswahl von Plattformen wie GGPoker
+  orientiert – dazu die Shot-Clock-Einstellungen und die Spielerliste für die Uhr. Lässt
+  sich jederzeit erneut öffnen, auch mitten im Abend.
+- **Shot-Clock direkt in der Analyse**: Jede Entscheidung beginnt mit einer festen
+  Reaktionszeit (Standard 10 s). Läuft sie ab, ohne dass gehandelt wurde, zehrt automatisch
+  die persönliche Timebank des Spielers weiter herunter – ein über den Abend endlicher
+  Vorrat (Standard 60 s). Ist sie aufgebraucht, bleibt ab diesem Moment für jede künftige
+  Entscheidung nur noch die reine Reaktionszeit, ohne weitere Verlängerung. Ein Tipp auf den
+  Namen startet die Uhr; sie läuft über echte Wanduhrzeit statt fester Schrittweiten und
+  bleibt so auch korrekt, wenn das Handy-Display kurz aus geht oder der Tab gewechselt wird.
+- **Schnelleingabe während der Hand**: Pot, Call und Stack sind immer sichtbar, dazu
+  Bet-Size-Chips (Check · ⅓ · ½ · ⅔ · Pot · All-in), die den Call direkt als Anteil vom
+  aktuellen Pot setzen – schneller getippt als hochzuzählen.
 - Gewinn-, Split- und Verlustwahrscheinlichkeit sowie Equity, als Kreis- und Balkendiagramm
 - Pot Odds, benötigte Equity, EV des Calls, SPR
 - Empfehlung: **CALL · FOLD · CHECK · ERHÖHEN · SETZEN · GRENZFALL** – jeweils mit den
@@ -52,15 +66,6 @@ gegen zwei 3-Bet-Ranges nur noch etwa 23 %.
 Danach die Auflösung mit Equity, benötigter Equity, Outs und Draws. Grenzfälle werden als
 solche gewertet: Wo die Mathematik keine eindeutige Antwort gibt, zählen beide vertretbaren
 Antworten. Auch Gegner-Ranges kommen vor, damit nicht nur Pot-Odds-Rechnen geübt wird.
-
-**Timer** – Shot-Clock für den Tisch, unabhängig von der Analyse. Jede Entscheidung beginnt
-mit einer festen Reaktionszeit (Standard 10 s). Läuft sie ab, ohne dass gehandelt wurde, zehrt
-automatisch die persönliche Timebank des Spielers weiter herunter – ein über den Abend
-endlicher Vorrat (Standard 60 s). Ist sie aufgebraucht, bleibt ab diesem Moment für jede
-künftige Entscheidung nur noch die reine Reaktionszeit, ohne weitere Verlängerung. Beliebig
-viele Spieler, jeder mit eigener Timebank; ein Tipp auf den Namen startet seine Uhr. Die Uhr
-läuft über echte Wanduhrzeit statt fester Schrittweiten, bleibt also auch korrekt, wenn das
-Handy-Display kurz aus geht oder der Tab gewechselt wird.
 
 **Statistik** – Lokal gespeichert: analysierte Hände, Ø-Equity, Trefferquote und Serie im
 Lernmodus, Lieblingshände, Equity nach Handtyp und eine Hand-History mit Favoriten, aus der
@@ -100,10 +105,11 @@ src/
 │   ├── outs.ts         Outs und Gefahrenkarten aus den Simulationsdaten
 │   ├── odds.ts         Pot Odds, EV, Empfehlung
 │   └── strategy.ts     Implied Odds, Einsatzhöhen, Value/Bluff/Bluff-Catch
+│   └── clock.ts         Shot-Clock: Reaktionszeit + Timebank als reine Zustandsmaschine
 ├── workers/      Rechen-Worker
-├── hooks/        Worker-Pool, Persistenz, Tastatur, Sound
-├── components/   Karten, Tisch, Range-Matrix, Ergebnisse, Analyse, UI-Bausteine
-└── screens/      Analyse, Lernen, Statistik
+├── hooks/        Worker-Pool, Persistenz, Tastatur, Sound, Shot-Clock (useShotClock)
+├── components/   Karten, Tisch, Range-Matrix, Pre-Game, Timer, Ergebnisse, UI-Bausteine
+└── screens/      Analyse (inkl. Uhr & Pre-Game), Lernen, Statistik
 ```
 
 ### Geschwindigkeit
@@ -140,7 +146,7 @@ Praxis, keine Solver-Ausgaben.
 npm test
 ```
 
-89 Tests, die wichtigsten:
+106 Tests, die wichtigsten:
 
 - **Evaluator gegen ein unabhängiges Orakel** – 20.000 zufällige Sieben-Karten-Paare müssen
   dieselbe Rangordnung ergeben wie der ausführlich getestete, bewusst naive Referenz-Evaluator
