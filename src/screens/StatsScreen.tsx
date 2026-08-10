@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Panel } from '../components/ui/Panel';
 import { HAND_CLASS_LABELS, HAND_CLASS_ORDER } from '../core/handClass';
 import { pct } from '../core/odds';
+import { emptyTable, type Seat } from '../core/table';
 import { defaultSpot, streetOf, STREET_LABELS, type SpotState } from '../core/types';
 import { averageEquity, favouriteHands, type AppState, type HistoryEntry } from '../state/appStorage';
 
@@ -222,12 +223,19 @@ function HistoryRow({
 /** History-Eintrag zurück in eine vollständige Situation verwandeln. */
 function toSpot(entry: HistoryEntry): SpotState {
   // Über den Standard-Spot gelegt, damit später ergänzte Felder (z.B. das
-  // Gegnermodell) auch bei alten Einträgen gesetzt sind.
+  // Gegnermodell) auch bei alten Einträgen gesetzt sind. Die History kennt nur
+  // die Spielerzahl, keine Namen – für die Wiederherstellung reichen anonyme Plätze.
+  const seats: Array<Seat | null> = emptyTable();
+  for (let i = 1; i < entry.players; i++) {
+    seats[i] = { id: `restored-${i}`, name: `Spieler ${i + 1}`, active: true };
+  }
+
   return {
     ...defaultSpot(),
     hole: [...entry.hole],
     board: [...entry.board],
-    players: entry.players,
+    seats,
+    dealerSeat: entry.players > 1 ? 1 : 0,
     pot: entry.pot,
     call: entry.call,
     stack: entry.stack,

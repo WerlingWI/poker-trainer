@@ -10,6 +10,7 @@ import { analyzeDraws } from '../core/draws';
 import { computeOdds, formatRatio, pct, recommend, type Action } from '../core/odds';
 import { analyzeOuts, hitProbability } from '../core/outs';
 import { createScenario } from '../core/scenario';
+import { activeOpponentCount } from '../core/table';
 import { cardsToCome, streetOf, STREET_LABELS, usedCards } from '../core/types';
 import { useEquity } from '../hooks/useEquity';
 import type { SoundName } from '../hooks/useSound';
@@ -94,7 +95,7 @@ export function LearnScreen({ app, onAnswer, play }: LearnScreenProps) {
       >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <span className="rounded-full bg-black/30 px-3 py-1 text-xs font-bold tracking-wider text-white/80 uppercase">
-            {STREET_LABELS[street]} · {spot.players - 1} Gegner
+            {STREET_LABELS[street]} · {activeOpponentCount(spot.seats)} Gegner
           </span>
           <span className="text-sm text-white/70">Stack {spot.stack}</span>
         </div>

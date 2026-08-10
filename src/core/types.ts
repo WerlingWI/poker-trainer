@@ -1,7 +1,8 @@
-/** Gemeinsame Zustandstypen der App und die Ableitungen rund um Positionen. */
+/** Gemeinsame Zustandstypen der App. Sitzplätze und Positionen leben in `./table`. */
 
 import type { Card } from './cards';
 import { defaultOpponentModel, type OpponentModel } from './range';
+import { MAX_SEATS, activeOpponentCount, createHeroSeat, type Seat, type Seats } from './table';
 
 export type Street = 'preflop' | 'flop' | 'turn' | 'river';
 
@@ -28,12 +29,12 @@ export function cardsToCome(boardLength: number): number {
 export interface SpotState {
   hole: Card[];
   board: Card[];
-  /** Spieler insgesamt, inklusive dir selbst (2..10). */
-  players: number;
+  /** Sitzplätze rings um den Tisch. Platz 0 ist immer Hero, `null` = leerer Platz. */
+  seats: Seats;
+  /** Roher Sitzindex, auf dem der Dealer-Button liegt. Zeigt immer auf einen besetzten Platz. */
+  dealerSeat: number;
   smallBlind: number;
   bigBlind: number;
-  /** Sitzplatz des Dealers, 0..players-1. Du selbst sitzt immer auf Platz 0. */
-  dealerSeat: number;
   pot: number;
   call: number;
   stack: number;
@@ -45,13 +46,18 @@ export interface SpotState {
 }
 
 export function defaultSpot(): SpotState {
+  const seats = new Array<Seat | null>(MAX_SEATS).fill(null);
+  seats[0] = createHeroSeat();
+  seats[1] = { id: 'seat-1', name: 'Spieler 2', active: true };
+  seats[2] = { id: 'seat-2', name: 'Spieler 3', active: true };
+
   return {
     hole: [],
     board: [],
-    players: 3,
+    seats,
+    dealerSeat: 1,
     smallBlind: 1,
     bigBlind: 2,
-    dealerSeat: 1,
     pot: 6,
     call: 2,
     stack: 100,
@@ -61,78 +67,10 @@ export function defaultSpot(): SpotState {
   };
 }
 
-/** Anzahl Gegner, die in der Simulation berücksichtigt werden. */
+/** Anzahl Gegner, die in der Simulation berücksichtigt werden – gefoldete zählen nicht mit. */
 export function opponentCount(spot: SpotState): number {
-  return Math.max(1, Math.min(9, spot.players - 1));
+  return Math.min(9, activeOpponentCount(spot.seats));
 }
-
-export type PositionKey = 'BTN' | 'SB' | 'BB' | 'UTG' | 'UTG+1' | 'MP' | 'LJ' | 'HJ' | 'CO';
-
-export interface PositionInfo {
-  key: PositionKey;
-  label: string;
-  /** Grobe Einordnung für den Hinweistext. */
-  group: 'früh' | 'mittel' | 'spät' | 'blinds';
-  hint: string;
-}
-
-/**
- * Positionsname nach Abstand zum Button: Index 0 ist der Button selbst,
- * Index 1 der Spieler direkt davor (Cutoff) und so weiter.
- */
-const BEFORE_BUTTON: PositionKey[] = ['BTN', 'CO', 'HJ', 'LJ', 'MP', 'UTG+1', 'UTG'];
-
-/**
- * Ermittelt die eigene Position. Der Hero sitzt auf Platz 0, die Plätze sind in
- * Spielrichtung nummeriert; `dealerSeat` ist der Platz des Dealers.
- */
-export function heroPosition(players: number, dealerSeat: number): PositionInfo {
-  const seats = Math.max(2, players);
-  const offset = ((dealerSeat % seats) + seats) % seats;
-
-  let key: PositionKey;
-  if (offset === 0) {
-    key = 'BTN'; // Hero ist selbst Dealer.
-  } else if (offset === seats - 1) {
-    key = 'SB'; // Dealer sitzt direkt vor dem Hero.
-  } else if (offset === seats - 2) {
-    key = 'BB';
-  } else {
-    // Der Dealer sitzt `offset` Plätze hinter dem Hero, also ist der Hero
-    // `offset` Plätze vor dem Button.
-    key = BEFORE_BUTTON[Math.min(offset, BEFORE_BUTTON.length - 1)];
-  }
-
-  return { key, ...POSITION_META[key] };
-}
-
-const POSITION_META: Record<PositionKey, Omit<PositionInfo, 'key'>> = {
-  BTN: {
-    label: 'Button',
-    group: 'spät',
-    hint: 'Beste Position – du handelst nach dem Flop immer zuletzt.',
-  },
-  CO: { label: 'Cutoff', group: 'spät', hint: 'Späte Position, du kannst weiter aufmachen.' },
-  HJ: { label: 'Hijack', group: 'mittel', hint: 'Mittlere Position.' },
-  LJ: { label: 'Lojack', group: 'mittel', hint: 'Mittlere Position.' },
-  MP: { label: 'Middle Position', group: 'mittel', hint: 'Mittlere Position.' },
-  'UTG+1': { label: 'UTG+1', group: 'früh', hint: 'Frühe Position – spiele enger.' },
-  UTG: {
-    label: 'Under the Gun',
-    group: 'früh',
-    hint: 'Früheste Position – hier brauchst du die stärksten Hände.',
-  },
-  SB: {
-    label: 'Small Blind',
-    group: 'blinds',
-    hint: 'Du handelst nach dem Flop als Erster – die unangenehmste Position.',
-  },
-  BB: {
-    label: 'Big Blind',
-    group: 'blinds',
-    hint: 'Du hast bereits gesetzt und bekommst deshalb bessere Pot Odds.',
-  },
-};
 
 /** Alle bereits vergebenen Karten – für die Sperrung im Kartenwähler. */
 export function usedCards(spot: SpotState): Card[] {

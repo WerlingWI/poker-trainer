@@ -34,7 +34,6 @@ const BLIND_PRESETS: readonly BlindPreset[] = [
 const blindKey = (sb: number, bb: number) => `${sb}-${bb}`;
 const formatBlind = (n: number) => n.toString().replace('.', ',');
 
-const PLAYER_COUNTS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
 const STACK_MULTIPLES = [40, 60, 100, 150, 200, 300];
 const REACTION_PRESETS = [5, 10, 15, 20, 30];
 const TIMEBANK_PRESETS = [30, 60, 90, 120, 180];
@@ -42,8 +41,9 @@ const TIMEBANK_PRESETS = [30, 60, 90, 120, 180];
 /**
  * Alles, was vor der ersten Hand feststehen sollte – an der Stakes-/Buy-in-Auswahl
  * von Plattformen wie GGPoker orientiert: große Presets zum Antippen statt langem
- * Tippen in Zahlenfeldern. Lässt sich jederzeit erneut öffnen, auch mitten im
- * Abend, wenn die Blinds steigen oder ein Spieler dazukommt.
+ * Tippen in Zahlenfeldern. Wer am Tisch sitzt, Dealer und Fold regelt der Pokertisch
+ * selbst; hier geht es nur um Blinds, Startstack und die Shot-Clock. Lässt sich
+ * jederzeit erneut öffnen, auch mitten im Abend, wenn die Blinds steigen.
  */
 export function PreGameSheet({
   open,
@@ -84,15 +84,6 @@ export function PreGameSheet({
             label: `${formatBlind(p.sb)}/${formatBlind(p.bb)}`,
           }))}
           onChange={applyBlinds}
-        />
-
-        <ChipRow
-          label="Spieler am Tisch (inkl. dir)"
-          value={spot.players}
-          options={PLAYER_COUNTS.map((n) => ({ value: n, label: String(n) }))}
-          onChange={(players) =>
-            setSpot((prev) => ({ ...prev, players, dealerSeat: Math.min(prev.dealerSeat, players - 1) }))
-          }
         />
 
         <ChipRow

@@ -8,7 +8,9 @@ import { EquityDonut, ResultBars } from '../components/results/EquityDonut';
 import { RecommendationBanner } from '../components/results/Recommendation';
 import { StatTile } from '../components/results/StatTile';
 import { StrategyPanel } from '../components/results/StrategyPanel';
+import { PokerTable } from '../components/table/PokerTable';
 import { QuickBetBar } from '../components/table/QuickBetBar';
+import { SeatSheet } from '../components/table/SeatSheet';
 import { TableFelt, type SlotTarget } from '../components/table/TableFelt';
 import { ShotClockBar } from '../components/timer/ShotClockBar';
 import { Button } from '../components/ui/Button';
@@ -24,12 +26,13 @@ import { analyzeOuts, emptyOutsAnalysis, hitProbability } from '../core/outs';
 import { resolveRange } from '../core/range';
 import { buildPlan, computeImpliedOdds, preflopAdvice } from '../core/strategy';
 import {
-  cardsToCome,
+  addSeat,
+  advanceHand,
   heroPosition,
-  opponentCount,
-  usedCards,
-  type SpotState,
-} from '../core/types';
+  removeSeat,
+  toggleFold,
+} from '../core/table';
+import { cardsToCome, opponentCount, usedCards, type SpotState } from '../core/types';
 import { useCardHotkeys } from '../hooks/useHotkeys';
 import { useEquity } from '../hooks/useEquity';
 import type { useShotClock } from '../hooks/useShotClock';
@@ -60,6 +63,7 @@ export function AnalyzerScreen({
   const [picker, setPicker] = useState<SlotTarget | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showPreGame, setShowPreGame] = useState(false);
+  const [activeSeat, setActiveSeat] = useState<number | null>(null);
 
   const equity = useEquity(spot, app.iterations);
   const used = usedCards(spot);
@@ -109,6 +113,42 @@ export function AnalyzerScreen({
     else if (spot.hole.length) removeCard({ area: 'hole', index: spot.hole.length - 1 });
   };
 
+  // --- Sitzplätze ------------------------------------------------------------
+  const addPlayerAtSeat = (rawIndex: number, name: string) => {
+    play('click');
+    setSpot((prev) => ({ ...prev, seats: addSeat(prev.seats, rawIndex, name) }));
+  };
+  const removePlayerAtSeat = (rawIndex: number) => {
+    setSpot((prev) => ({ ...prev, seats: removeSeat(prev.seats, rawIndex) }));
+  };
+  const toggleSeatFold = (rawIndex: number) => {
+    play('click');
+    setSpot((prev) => ({ ...prev, seats: toggleFold(prev.seats, rawIndex) }));
+  };
+  const setDealerSeat = (rawIndex: number) => {
+    setSpot((prev) => ({ ...prev, dealerSeat: rawIndex }));
+  };
+
+  /**
+   * Neue Hand: Button eine Position weiterschieben, alle Folds aufheben, eigene
+   * und Board-Karten leeren, Pot/Call wieder auf die Blind-Grundstellung setzen.
+   */
+  const nextHand = () => {
+    play('card');
+    setSpot((prev) => {
+      const { seats, dealerSeat } = advanceHand(prev.seats, prev.dealerSeat);
+      return {
+        ...prev,
+        seats,
+        dealerSeat,
+        hole: [],
+        board: [],
+        pot: prev.bigBlind * 3,
+        call: prev.bigBlind,
+      };
+    });
+  };
+
   const cycleIterations = () => {
     const index = ITERATION_OPTIONS.indexOf(app.iterations as (typeof ITERATION_OPTIONS)[number]);
     const next = ITERATION_OPTIONS[(index + 1) % ITERATION_OPTIONS.length];
@@ -146,7 +186,7 @@ export function AnalyzerScreen({
   }, [equity.totals, equity.breakdown, toCome, showCardImpacts, used.join(',')]);
 
   // --- Strategie: Implied Odds, Einsatzhöhen, Value/Bluff/Bluff-Catch -------
-  const position = heroPosition(spot.players, spot.dealerSeat);
+  const position = heroPosition(spot.seats, spot.dealerSeat);
   const preflop = spot.board.length === 0 ? preflopAdvice(spot.hole, position.key) : null;
   const opponentRange = useMemo(() => resolveRange(spot.opponent), [spot.opponent]);
 
@@ -217,13 +257,20 @@ export function AnalyzerScreen({
 
       <ShotClockBar clock={clock} onOpenPreGame={() => setShowPreGame(true)} />
 
-      <TableFelt
-        spot={spot}
-        nextSlot={picker ?? nextFreeSlot}
-        highlight={bestHand?.bestFive}
-        onSlotClick={(target) => setPicker(target)}
-        onRemove={removeCard}
-      />
+      <PokerTable
+        seats={spot.seats}
+        dealerSeat={spot.dealerSeat}
+        onSeatTap={setActiveSeat}
+        onNextHand={nextHand}
+      >
+        <TableFelt
+          spot={spot}
+          nextSlot={picker ?? nextFreeSlot}
+          highlight={bestHand?.bestFive}
+          onSlotClick={(target) => setPicker(target)}
+          onRemove={removeCard}
+        />
+      </PokerTable>
 
       {ready && <QuickBetBar spot={spot} setSpot={setSpot} />}
 
@@ -235,6 +282,13 @@ export function AnalyzerScreen({
 
       {!ready ? (
         <EmptyState />
+      ) : opponents === 0 ? (
+        <div className="animate-pop rounded-2xl border border-win/40 bg-win/10 p-5 text-center">
+          <div className="text-2xl font-black text-win">Alle Gegner sind raus</div>
+          <p className="mt-1.5 text-sm text-ink">
+            Niemand ist mehr in der Hand – der Pot gehört dir kampflos.
+          </p>
+        </div>
       ) : (
         <>
           {equity.running && (
@@ -469,6 +523,17 @@ export function AnalyzerScreen({
         onClockConfigChange={(clockConfig) => setApp((prev) => ({ ...prev, clock: clockConfig }))}
         clock={clock}
       />
+
+      <SeatSheet
+        rawIndex={activeSeat}
+        onClose={() => setActiveSeat(null)}
+        seats={spot.seats}
+        dealerSeat={spot.dealerSeat}
+        onAdd={addPlayerAtSeat}
+        onToggleFold={toggleSeatFold}
+        onSetDealer={setDealerSeat}
+        onRemove={removePlayerAtSeat}
+      />
     </div>
   );
 }
@@ -498,42 +563,23 @@ function SpotSettings({
   spot: SpotState;
   setSpot: (update: SpotState | ((prev: SpotState) => SpotState)) => void;
 }) {
-  const position = heroPosition(spot.players, spot.dealerSeat);
+  const position = heroPosition(spot.seats, spot.dealerSeat);
   const update = (patch: Partial<SpotState>) => setSpot((prev) => ({ ...prev, ...patch }));
 
   return (
     <div className="space-y-4">
-      <Stepper
-        label="Spieler am Tisch (inkl. dir)"
-        value={spot.players}
-        min={2}
-        max={10}
-        onChange={(players) =>
-          update({ players, dealerSeat: Math.min(spot.dealerSeat, players - 1) })
-        }
-      />
+      <div className="rounded-xl border border-line bg-surface-2 p-3 text-sm leading-snug">
+        Deine Position: <strong className="text-gold">{position.label}</strong> – {position.hint}
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Stepper label="Small Blind" value={spot.smallBlind} min={0} onChange={(smallBlind) => update({ smallBlind })} />
         <Stepper label="Big Blind" value={spot.bigBlind} min={1} onChange={(bigBlind) => update({ bigBlind })} />
       </div>
 
-      <div>
-        <Stepper
-          label="Dealer sitzt … Plätze nach dir"
-          value={spot.dealerSeat}
-          min={0}
-          max={spot.players - 1}
-          onChange={(dealerSeat) => update({ dealerSeat })}
-        />
-        <p className="mt-1.5 text-sm text-muted">
-          Deine Position: <strong className="text-gold">{position.label}</strong> – {position.hint}
-        </p>
-      </div>
-
       <p className="text-xs text-muted">
-        Pot, Call und Stack stellst du direkt oben in der Schnelleingabe ein – hier geht es nur um
-        Blinds, Position und die Einsatzhistorie.
+        Wer am Tisch sitzt, der Dealer-Button und Pot/Call/Stack stellst du direkt am Tisch bzw.
+        in der Schnelleingabe ein – hier geht es nur um Blinds und die Einsatzhistorie.
       </p>
 
       <div className="grid grid-cols-2 gap-3">

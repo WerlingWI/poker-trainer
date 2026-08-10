@@ -21,10 +21,17 @@ Danach `http://localhost:5173` öffnen. `npm test` führt die Testsuite aus,
 **Analyse** – Zwei eigene Karten genügen; das Board ist optional. Die Simulation startet
 automatisch, ohne Klick auf einen Berechnen-Knopf.
 
-- **Pre-Game-Fenster** (Knopf oben auf der Analyse-Seite): Blinds, Spieleranzahl und
-  Startstack als antippbare Presets, an der Stakes-Auswahl von Plattformen wie GGPoker
-  orientiert – dazu die Shot-Clock-Einstellungen und die Spielerliste für die Uhr. Lässt
-  sich jederzeit erneut öffnen, auch mitten im Abend.
+- **Der Pokertisch ist der Hauptfokus**: eine Ellipse mit Sitzplätzen rings herum, Hero fest
+  unten in der Mitte. Ein Tipp auf einen leeren Platz besetzt ihn mit Namen, ein Tipp auf
+  einen besetzten Platz öffnet Fold, „Dealer hierher" und die Range, die dieser Spieler aus
+  seiner aktuellen Position üblicherweise eröffnet (13×13-Matrix, live aus Sitzordnung und
+  Dealer-Position berechnet). „▶ Nächste Hand" schiebt den Button einen Platz weiter, hebt
+  alle Folds auf und setzt Karten sowie Pot/Call auf die Blind-Grundstellung zurück. Foldet
+  jeder Gegner, meldet die App den Pot kampflos gewonnen, statt sinnlos zu simulieren.
+- **Pre-Game-Fenster** (Knopf oben auf der Analyse-Seite): Blinds und Startstack als
+  antippbare Presets, an der Stakes-Auswahl von Plattformen wie GGPoker orientiert – dazu
+  die Shot-Clock-Einstellungen und die Spielerliste für die Uhr. Lässt sich jederzeit erneut
+  öffnen, auch mitten im Abend.
 - **Shot-Clock direkt in der Analyse**: Jede Entscheidung beginnt mit einer festen
   Reaktionszeit (Standard 10 s). Läuft sie ab, ohne dass gehandelt wurde, zehrt automatisch
   die persönliche Timebank des Spielers weiter herunter – ein über den Abend endlicher
@@ -47,7 +54,7 @@ automatisch, ohne Klick auf einen Berechnen-Knopf.
   Overcards, Blocker, sowie die fertige Hand
 - Deck-Heatmap: für jede noch unbekannte Karte, wie sich die eigene Equity ändert, wenn
   genau sie als Nächstes kommt – daraus Outs, Hilfs- und Gefahrenkarten
-- Position: Die eigene Position wird aus Spielerzahl und Dealer-Platz abgeleitet und
+- Position: Die eigene Position wird aus der Sitzordnung und dem Dealer-Platz abgeleitet und
   preflop mit der üblichen Eröffnungsbreite dieser Position verglichen
 
 **Gegner-Ranges** – Statt gegen Zufallskarten lässt sich gegen eine konkrete Range rechnen:
@@ -101,15 +108,16 @@ src/
 │   ├── simulate.ts     Monte Carlo, mit oder ohne Gegner-Range
 │   ├── handRanking.ts  die 169 Starthand-Klassen und ihre Rangfolge
 │   ├── range.ts        Ranges, Presets, Ableitung aus Gegner-Stats
+│   ├── table.ts         Sitzplätze, Dealer-Rotation, Positionsnamen, Tisch-Layout
 │   ├── draws.ts        Draw-Erkennung
 │   ├── outs.ts         Outs und Gefahrenkarten aus den Simulationsdaten
 │   ├── odds.ts         Pot Odds, EV, Empfehlung
-│   └── strategy.ts     Implied Odds, Einsatzhöhen, Value/Bluff/Bluff-Catch
+│   ├── strategy.ts     Implied Odds, Einsatzhöhen, Value/Bluff/Bluff-Catch
 │   └── clock.ts         Shot-Clock: Reaktionszeit + Timebank als reine Zustandsmaschine
 ├── workers/      Rechen-Worker
 ├── hooks/        Worker-Pool, Persistenz, Tastatur, Sound, Shot-Clock (useShotClock)
-├── components/   Karten, Tisch, Range-Matrix, Pre-Game, Timer, Ergebnisse, UI-Bausteine
-└── screens/      Analyse (inkl. Uhr & Pre-Game), Lernen, Statistik
+├── components/   Pokertisch & Sitzplätze, Karten, Range-Matrix, Pre-Game, Ergebnisse, UI
+└── screens/      Analyse (inkl. Tisch, Uhr & Pre-Game), Lernen, Statistik
 ```
 
 ### Geschwindigkeit
@@ -146,7 +154,7 @@ Praxis, keine Solver-Ausgaben.
 npm test
 ```
 
-106 Tests, die wichtigsten:
+126 Tests, die wichtigsten:
 
 - **Evaluator gegen ein unabhängiges Orakel** – 20.000 zufällige Sieben-Karten-Paare müssen
   dieselbe Rangordnung ergeben wie der ausführlich getestete, bewusst naive Referenz-Evaluator

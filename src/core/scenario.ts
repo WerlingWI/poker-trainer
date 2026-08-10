@@ -9,7 +9,15 @@
 import { NUM_CARDS, type Card } from './cards';
 import { RANGE_PRESETS, defaultOpponentModel } from './range';
 import { mulberry32 } from './simulate';
+import { emptyTable, occupiedSeatsInOrder, type Seat } from './table';
 import { defaultSpot, type SpotState } from './types';
+
+/** Ein Tisch mit `count` besetzten Plätzen (Hero + count-1 namenlose Gegner). */
+function buildSeats(count: number): Array<Seat | null> {
+  const seats = emptyTable();
+  for (let i = 1; i < count; i++) seats[i] = { id: `learn-${i}`, name: `Spieler ${i + 1}`, active: true };
+  return seats;
+}
 
 export interface Scenario {
   spot: SpotState;
@@ -41,6 +49,7 @@ export function createScenario(seed = (Math.random() * 0xffffffff) >>> 0): Scena
   const board: Card[] = deck.slice(2, 2 + boardLength);
 
   const players = 2 + ((random() * 3) | 0); // 2 bis 4 Spieler
+  const seats = buildSeats(players);
   const bigBlind = 2;
   const stack = pick([60, 80, 100, 150, 200]);
 
@@ -57,14 +66,15 @@ export function createScenario(seed = (Math.random() * 0xffffffff) >>> 0): Scena
       ? defaultOpponentModel()
       : { ...defaultOpponentModel(), mode: 'preset' as const, presetKey };
 
+  const occupied = occupiedSeatsInOrder(seats);
   const spot: SpotState = {
     ...defaultSpot(),
     hole,
     board,
-    players,
+    seats,
     bigBlind,
     smallBlind: bigBlind / 2,
-    dealerSeat: (random() * players) | 0,
+    dealerSeat: pick(occupied.map((o) => o.rawIndex)),
     pot: basePot + bet,
     call: Math.min(bet, stack),
     stack,

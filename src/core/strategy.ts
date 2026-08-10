@@ -10,7 +10,7 @@ import { HandCategory } from './evaluator';
 import { PERCENTILE_OF_CLASS, handClassOf } from './handRanking';
 import type { Odds } from './odds';
 import type { Card } from './cards';
-import type { PositionKey } from './types';
+import type { PositionKey } from './table';
 
 // --- Implied Odds ----------------------------------------------------------
 

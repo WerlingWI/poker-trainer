@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { computeOdds, formatRatio, recommend } from '../odds';
 import { classifyHand, handCode } from '../handClass';
-import { defaultSpot, heroPosition, streetOf } from '../types';
+import { defaultSpot, streetOf } from '../types';
 import { parseCard, type Card } from '../cards';
 
 function hand(text: string): Card[] {
@@ -100,21 +100,11 @@ describe('Tisch-Ableitungen', () => {
     expect(streetOf(5)).toBe('river');
   });
 
-  it('leitet die eigene Position aus dem Dealerplatz ab', () => {
-    // Hero sitzt auf Platz 0.
-    expect(heroPosition(6, 0).key).toBe('BTN'); // Hero ist selbst Dealer
-    expect(heroPosition(6, 5).key).toBe('SB'); // Dealer sitzt direkt vor Hero
-    expect(heroPosition(6, 4).key).toBe('BB');
-    expect(heroPosition(6, 1).key).toBe('CO'); // Dealer sitzt direkt hinter Hero
-    expect(heroPosition(6, 2).key).toBe('HJ');
-    expect(heroPosition(9, 6).key).toBe('UTG');
-    expect(heroPosition(2, 0).key).toBe('BTN');
-    expect(heroPosition(2, 1).key).toBe('SB');
-  });
-
   it('liefert einen sinnvollen Standard-Spot', () => {
+    // Die Positionslogik selbst steckt in table.test.ts.
     const spot = defaultSpot();
-    expect(spot.players).toBeGreaterThanOrEqual(2);
+    expect(spot.seats[0]?.name).toBe('Du');
+    expect(spot.seats.filter(Boolean).length).toBeGreaterThanOrEqual(2);
     expect(spot.pot).toBeGreaterThan(0);
     expect(spot.hole).toHaveLength(0);
   });

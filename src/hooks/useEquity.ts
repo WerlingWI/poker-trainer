@@ -64,7 +64,9 @@ export function useEquity(spot: SpotState, iterations: number) {
   const holeKey = spot.hole.join(',');
   const boardKey = spot.board.join(',');
   const opponents = opponentCount(spot);
-  const ready = isSpotReady(spot) && spot.hole.length === 2;
+  // Ohne Gegner gibt es nichts zu simulieren – der Pot geht kampflos an Hero,
+  // das zeigt die Oberfläche direkt an, statt eine leere Rechnung zu starten.
+  const ready = isSpotReady(spot) && spot.hole.length === 2 && opponents > 0;
   const opponentKey = JSON.stringify(spot.opponent);
 
   const input = useMemo<Omit<SimInput, 'seed' | 'iterations'> | null>(() => {

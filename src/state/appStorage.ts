@@ -6,6 +6,7 @@
 import type { Card } from '../core/cards';
 import { defaultClockConfig, type ClockConfig } from '../core/clock';
 import { HAND_CLASS_ORDER, classifyHand, handCode, type HandClassKey } from '../core/handClass';
+import { occupiedSeatsInOrder } from '../core/table';
 import type { SpotState } from '../core/types';
 
 export const STORAGE_KEY = 'pokerTrainer';
@@ -92,7 +93,7 @@ export function recordHand(state: AppState, spot: SpotState, equity: number): Ap
     at: Date.now(),
     hole: [...spot.hole],
     board: [...spot.board],
-    players: spot.players,
+    players: occupiedSeatsInOrder(spot.seats).length,
     pot: spot.pot,
     call: spot.call,
     stack: spot.stack,
